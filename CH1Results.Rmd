@@ -70,7 +70,7 @@ My_Theme <- theme(
 
 ```
 
-#Time series Figures 2-5
+#Time series Figures 2 calculations
 ```{r Data experiment 1 Monthly Analysis Calculations, include=FALSE}
 #calculate monthly averages:
 #adding the names of the bays into the data frame
@@ -160,9 +160,6 @@ theme_classic() + #facet_wrap(~MAJOR_AREA_CODE, scales = "free") +
   y = "CPUE (#/hectare)" 
 ) + theme(axis.text.x = element_text(angle=45, hjust=1))
 
-## Saving the plots to my computer
-#ggsave("RedDrum_Draft.jpg", width = 10, height = 8, units = c("in"), dpi = 300)
-
 
 #spotted seatrout plot
 ggplot(data = sst_mon_avg %>% filter(YEAR > 2013), mapping = aes(x = MDY, y =  CPUE_AvgSST, color = MAJOR_AREA_CODE)) + geom_line(alpha = 0.8, size = 1) + theme_classic() +#facet_wrap(~MAJOR_AREA_CODE, scale = "free") +  
@@ -175,7 +172,6 @@ ggplot(data = sst_mon_avg %>% filter(YEAR > 2013), mapping = aes(x = MDY, y =  C
     y = "CPUE (#/hectare)"
   )+ theme(axis.text.x = element_text(angle=45, hjust=1))
 
-#ggsave("SST_CERFTalkRedLine.jpg", width = 10, height = 8, units = c("in"), dpi = 300)
 
 
 ## black drum plot
@@ -191,7 +187,6 @@ ggplot(data = blackDrum_mon_avg  %>% filter(YEAR > 2013), mapping = aes(x = MDY,
 
 #b
 
-#ggsave("BlackDrum_Draft.jpg", width = 10, height = 8, units = c("in"), dpi = 300)
 
 
 ## southern flounder plot
@@ -211,8 +206,8 @@ ggplot(data = SF_mon_avg %>% filter(YEAR > 2013), mapping = aes(x = MDY, y =  CP
 
 ```
 
-# Figure 2 
-```{r ggarrange into 4 pannel figure}
+# Figure 2 compilation
+```{r ggarrange into 4 pannel figure for figure 2}
 
 rd <- ggplot(data = redDrum_mon_avg %>% filter(YEAR > 2013), mapping = aes(x = MDY, y =  CPUE_AvgRD, color = MAJOR_AREA_CODE)) + geom_line(alpha = 0.8, size = 1) +  My_Theme +
    scale_color_manual(values = colorBlindBlack8) +
@@ -279,58 +274,21 @@ annotate_figure(time_series,
 ```{r table 1 creation}
 library(knitr)
 ## Past 10 years (to represent the gradient)
-#enviro_table <- bag.seines %>%
+enviro_table <- bag.seines %>%
   #filter(YEAR > 2013 & YEAR < 2024 ) %>% 
   #group_by(MAJOR_AREA_CODE) %>% 
   #summarise_at(.var = c("START_TEMPERATURE_NUM", "START_SALINITY_NUM"), .funs =   mean)
 
-#enviro_tableSD <- bag.seines %>%
+enviro_tableSD <- bag.seines %>%
   #filter(YEAR > 2013 & YEAR < 2024 ) %>% 
  #group_by(MAJOR_AREA_CODE) %>% 
   #summarise_at(.var = c("START_TEMPERATURE_NUM", "START_SALINITY_NUM"), .funs =   sd)
 
 #merge
-#enviro_join <- merge(enviro_table, enviro_tableSD, by = "MAJOR_AREA_CODE")
-#enviro_join$MAJOR_AREA_CODE <- factor(enviro_join$MAJOR_AREA_CODE , levels = c("SabineLake", "GalvestonBay", "MatagordaBay", "SanAntonioBay", "AransasBay", "CorpusChristiBay", "UpperLagunaMadre", "LowerLagunaMadre"))
+enviro_join <- merge(enviro_table, enviro_tableSD, by = "MAJOR_AREA_CODE")
+enviro_join$MAJOR_AREA_CODE <- factor(enviro_join$MAJOR_AREA_CODE , levels = c("SabineLake", "GalvestonBay", "MatagordaBay", "SanAntonioBay", "AransasBay", "CorpusChristiBay", "UpperLagunaMadre", "LowerLagunaMadre"))
 
-#write.csv(enviro_join, "~/texas_extreme_events/enviro_join.csv", row.names=FALSE)
-
-#Call in environmental data from depth
-#table.1excel <- read.csv("~/texas_extreme_events/Table1_Excel.csv")
-#enviro_join <- read.csv("~/texas_extreme_events/enviro_join.csv")
-
-#merge data
-#enviro_join <- enviro_join %>% 
-  #rename("MajorBay" = "MAJOR_AREA_CODE")
-
-#table1 <- merge(table.1excel,enviro_join)
-
-
-
-#table1 <- table1 %>% 
-  #rename("Major Bay" = "MajorBay") %>% 
-  #rename("Average Depth (m)" = "Mean.Depth..m.") %>% 
-  #rename("Average Temp (Celsius)" = "START_TEMPERATURE_NUM.x") %>% 
-  #rename("Average Salinity (ppt)" = "START_SALINITY_NUM.x") %>% 
-  #rename("Standard Deviation Temp" = "START_TEMPERATURE_NUM.y") %>% 
-  #rename("Standard Deviation Salinity" = "START_SALINITY_NUM.y") %>% 
-  #rename("Max Depth (Dredged (m))" = "Max.Depth..Dredged..m..") %>% 
-  #rename("Max Dpeth (Non Dredged (m))"= "Max.Depth..Non.Dredged..m..") %>% 
-  #rename("Surface Area (ha)" = "Surface.Area..ha.") %>% 
-  #rename("Volume (km3)" = "Volumn..km3.")
-
-#rearrange
-#table1 <- table1 %>% relocate(`Standard Deviation Temp`, .after=`Average Temp (Celsius)`)
-
-#table1$`Major Bay` <- factor(table1$`Major Bay` , levels = c("SabineLake", "GalvestonBay", "MatagordaBay", "SanAntonioBay", "AransasBay", "CorpusChristiBay", "UpperLagunaMadre", "LowerLagunaMadre"))
-#levels(table1$`Major Bay`)
-
-
-#library(kableExtra)
-#kbl(table1, booktabs = T) %>%
-#kable_styling(latex_options = c("striped", "scale_down"))
-
-
+write.csv(enviro_join, "~/texas_extreme_events/enviro_join2.csv", row.names=FALSE)
 
 
 ```
@@ -426,9 +384,6 @@ ggplot(data = bag.seines %>% filter(YEAR > 2006 & YEAR < 2017), mapping = aes(x 
   )
 
 
-## looks like for red drum, there are lulls and peaks and the most consistence peaks are sept-april of every year, lowest during the summer
-
-
 ggplot(data = bag.seines %>% filter(YEAR > 2006 & YEAR < 2017), mapping = aes(x = as.Date(JULIAN_DATE, origin = as.Date("2021-01-01")), y = (sst_CPUE), group=as.factor(YEAR), color = as.factor(YEAR))) + geom_point() + #geom_smooth() +
   theme_classic() + #facet_wrap(~MAJOR_AREA_CODE) +
   scale_x_date(date_labels = "%b", date_breaks = "1 month") +
@@ -462,7 +417,7 @@ ggplot(data = bag.seines %>% filter(YEAR > 2006 & YEAR < 2017), mapping = aes(x 
 
 ```
 
-```{r recruitment windows closer look, include=FALSE}
+```{r recruitment windows verification, include=FALSE}
 ## Red drum trial with hurricane event
 #make testing dataframes
 oneyear <- bag.seines %>% 
@@ -581,8 +536,6 @@ check4 <- check2 %>%
   group_by(MAJOR_AREA_CODE)
 #pasting them together
 finalcheck <- rbind(check3, check4)
-
-## I realized that the data set has data from an incomplete recruitment window since it starts with 2007 in jan (this recruitment window would have started in oct of the previous year) so I need to make sure it starts in oct of 2007 and ends may of 2016 for the averages
  
 finalcheck <- finalcheck %>% 
   filter(DATE > "2007-09-30") %>% 
@@ -678,7 +631,6 @@ kable(table, "latex", booktabs = T) %>%
   kable_styling(latex_options = c( "scale_down"), full_width = F)
   
 
-#ggsave("RD_HHDraft.jpg", width = 10, height = 8, units = c("in"), dpi = 300)
 ```
 
 ```{r Red Drum Freeze}
@@ -789,7 +741,6 @@ RE.RD.freeze.PerChange %>%
     title = "Red drum during freeze with NEW baselines"
   )
 
-#ggsave("RD_FreezeDraft.jpg", width = 10, height = 8, units = c("in"), dpi = 300)
 ```
 
 
@@ -905,7 +856,6 @@ RE.SST.Spread.PerChange %>%
 kable(RE.SST.Spread.PerChange, "latex", booktabs = T) %>% 
   kable_styling(latex_options = c( "scale_down"), full_width = F)
 
-#ggsave("SST_HHPerChangeCERF.jpg", width = 10, height = 8, units = c("in"), dpi = 300)
 
 
 
@@ -1009,8 +959,6 @@ RE.SST.PerChange.freeze %>%
 
 
 
-#ggsave("SST_CERFFreezeZoom.jpg", width = 10, height = 8, units = c("in"), dpi = 300)
-
 ```
 
 
@@ -1109,7 +1057,6 @@ RE.BD.Spread.PerChange %>%
     title = "BD during hurricane harvey with NEW baselines"
   )
 
-#ggsave("BD_HHPerChangeDraft.jpg", width = 10, height = 8, units = c("in"), dpi = 300)
 
 ```
 
@@ -1212,8 +1159,6 @@ RE.BD.PerChange.freeze %>%
   ) 
 
 
-#ggsave("BD_CERFFreeze.jpg", width = 10, height = 8, units = c("in"), dpi = 300)
-
 ```
 
 
@@ -1315,12 +1260,6 @@ RE.SF.Spread.PerChange %>%
   )
 
 
-#ggsave("SF_HHPerChangeDraft.jpg", width = 10, height = 8, units = c("in"), dpi = 300)
-
-## In regards to suspecting an already declining population, being able to compare to an averaged percent change, if the change is more negative than that, then we could say that the storm was harmful to an already declining populations = vulnerable
-
-
-
 ```
 
 ```{r Southern Flounder Freeze}
@@ -1415,42 +1354,11 @@ RE.SF.PerChange.freeze %>%
     title = "SF during freeze with NEW baselines"
   )
 
-#ggsave("SF_FreezeDraft.jpg", width = 10, height = 8, units = c("in"), dpi = 300)
-
-```
-
-```{r plotting all together hurricane}
-## All the spread per change into one dataframe?
-
-check1 <- rbind(RE.RD.Spread.PerChange, RE.SST.Spread.PerChange, RE.BD.Spread.PerChange,RE.SF.Spread.PerChange)
-
-#copy over to a new dataframe: 
-plot <- check1
-
-#remove unnecessary columns for plotting
-plot <- plot[-c(3:5)]
-
-#gather:
-plot <- plot %>% pivot_longer(cols = c('first_perChange', 'second_perChange'),
-                                names_to = 'per_change',
-                                values_to = 'percentage')
-
-#building the figure
-
-
-#second try building the figure 
-
-
-
-ggplot(plot, aes(x=MAJOR_AREA_CODE, y = percentage, group = SPECIES, color = SPECIES, shape = per_change)) + geom_point(position = position_dodge(width=1)) + theme_classic() + theme(axis.text.x = element_text(angle=90, hjust=1)) + geom_hline(yintercept = 0) 
-
 
 ```
 
 
-
-
-# Added Analysis
+# Interannual Variation
 ## Here we calculate the year to year percent change in the 10 year baseline period. From these numbers we created boxplots and then put thme on top of the percent change figures to give a range of expected interanual variablity. 
 
 This is organized by species:
@@ -1461,7 +1369,7 @@ This is organized by species:
 - SF and Hurricane
 - SF and Freeze
 
-I am putting a pin on the red drum for now given their unique recruitment window
+I am putting red drum last given their unique recruitment window
 
 # Spotted seatrout Added Boxplot
 ```{r Spotted Seatrout and Hurricane }
@@ -1537,8 +1445,6 @@ RE.SST.Spread.PerChange %>%
     colour = "Post Storm",
     title = "spotted seatrout and HH"
   )
-
-#ggsave("test1_SSTBoxplots.jpg", width = 10, height = 8, units = c("in"), dpi = 300)
 
 
 ```
@@ -2155,7 +2061,7 @@ RE.RD.Spread.PerChange %>%
 
 ```
 
-# Hurricane Figure
+# Hurricane Figure 3
 ```{r 4 panel figure code}
 grey <- "#D3D3D3"
 
@@ -2277,7 +2183,7 @@ annotate_figure(fig.3,
 ```
 
 
-#Freeze figure 
+#Freeze figure 4
 ```{r 4 panel figure for freeze event}
 
 A.freeze <- RE.RD.freeze.PerChange %>%
