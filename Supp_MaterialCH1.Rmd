@@ -1,0 +1,1486 @@
+---
+title: "Supp_MaterialCH1"
+author: "Ana Silverio"
+date: "2024-02-15"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+\renewcommand{\thepage}{S\arabic{page}}
+
+\renewcommand{\thesection}{S\arabic{section}} 
+
+\renewcommand{\thetable}{S\arabic{table}} 
+
+\renewcommand{\thefigure}{S\arabic{figure}}
+
+\setcounter{table}{0}
+
+\setcounter{figure}{0}
+
+\setcounter{section}{0}
+
+\setcounter{page}{0}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache = TRUE, warning = FALSE, message = FALSE)
+
+## This will be a compilation of the supplementary material from Chapter 1 of thesis
+
+#Set working directory:
+setwd("~/texas_extreme_events")
+
+#Call in bag seines:
+bag.seines <- read.csv("~/texas_extreme_events/Clean_TPWD_Data/UpdatedBagSeinesCondensed_CLEAN.csv")
+
+#Packages:
+library(tidyverse)
+library(lubridate)
+library(knitr)
+options(digits = 4)
+library(ggforce)
+library(tidyverse)
+library("hrbrthemes")
+library(viridis)
+library(forcats)
+library(ggpubr)
+library(kableExtra)
+library(magick)
+library(webshot2)
+library(jtools)
+library(huxtable)
+
+
+#color palette
+colorBlindBlack8 <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00","#CC79A7")
+
+#readable dates:
+str(bag.seines)
+bag.seines$DATE<- as.Date(bag.seines$DATE,
+                                        format = "%m/%d/%y")
+
+#adding the names of the bays into the data frame
+bag.seines$MAJOR_AREA_CODE <- as.factor(bag.seines$MAJOR_AREA_CODE)
+
+bag.seines <- bag.seines %>%  
+  dplyr::mutate(MAJOR_AREA_CODE = recode(MAJOR_AREA_CODE, `1` = 'SabineLake', `2` = 'GalvestonBay', `3` = 'MatagordaBay', `4` = 'SanAntonioBay', `5`= 'AransasBay', `6`='CorpusChristiBay', `7`='UpperLagunaMadre', `8` = 'LowerLagunaMadre', `9`='EastMatagordaBay', `11` = 'CedarLakes'))
+
+bag.seines <- bag.seines %>% 
+  filter(!(MAJOR_AREA_CODE == "CedarLakes")) %>% 
+  filter(!(MAJOR_AREA_CODE == "EastMatagordaBay"))
+
+##Plot
+My_Theme <- theme(
+  axis.title.x = element_text(size = 12),
+  axis.text.x = element_text(size = 12),
+  axis.title.y = element_text(size = 12),
+  plot.title = element_text(size = 12),
+  legend.text = element_text(size = 12),
+  legend.title = element_text(size = 12),
+  axis.ticks.length = unit(0.20, "cm"),
+  axis.text.y = element_text(size = 12))
+
+
+
+```
+
+```{r time series Monthly Analysis Calculations, include=FALSE}
+#calculate monthly averages:
+#adding the names of the bays into the data frame
+bag.seines$MAJOR_AREA_CODE <- as.factor(bag.seines$MAJOR_AREA_CODE)
+
+#bag.seines <- bag.seines %>% 
+  #filter(!(MAJOR_AREA_CODE == "CedarLakes")) %>% 
+  #filter(!(MAJOR_AREA_CODE == "EastMatagordaBay"))
+
+## Red drum Monthly Average Calculations -----
+redDrum_mon_avg <- bag.seines %>%
+  group_by(MONTH,YEAR,MAJOR_AREA_CODE) %>%
+  summarize(mean(rd_CPUE))
+
+redDrum_mon_avg <- redDrum_mon_avg %>%
+  rename("CPUE_AvgRD" = "mean(rd_CPUE)")
+
+
+# making column that combines month and year
+redDrum_mon_avg$DAY <- 1
+redDrum_mon_avg$MDY <- paste(redDrum_mon_avg$MONTH,redDrum_mon_avg$DAY, redDrum_mon_avg$YEAR, sep = "-")
+redDrum_mon_avg$MDY <- as.Date(redDrum_mon_avg$MDY, format = "%m-%d-%Y")
+
+
+## Spotted seatrout Calculation ------
+sst_mon_avg <- bag.seines %>%
+  group_by(MONTH,YEAR,MAJOR_AREA_CODE) %>%
+  summarize(mean(sst_CPUE))
+
+sst_mon_avg <- sst_mon_avg %>%
+  rename("CPUE_AvgSST" = "mean(sst_CPUE)")
+
+#sst_mon_avg$MAJOR_AREA_CODE <- as.character(sst_mon_avg$MAJOR_AREA_CODE)
+
+#creating a data column for easier interpretation 
+sst_mon_avg$DAY <- 1
+sst_mon_avg$MDY <- paste(sst_mon_avg$MONTH,sst_mon_avg$DAY, sst_mon_avg$YEAR, sep = "-")
+sst_mon_avg$MDY <- as.Date(sst_mon_avg$MDY, format = "%m-%d-%Y")
+
+
+
+#Black drum calculation ---- 
+blackDrum_mon_avg <- bag.seines %>%
+  group_by(MONTH,YEAR,MAJOR_AREA_CODE) %>%
+  summarize(mean(bd_CPUE))
+
+blackDrum_mon_avg  <- blackDrum_mon_avg  %>%
+  rename("CPUE_AvgBD" = "mean(bd_CPUE)")
+
+blackDrum_mon_avg$MAJOR_AREA_CODE <- as.character(blackDrum_mon_avg$MAJOR_AREA_CODE)
+
+## creating a data column
+blackDrum_mon_avg$DAY <- 1
+blackDrum_mon_avg$MDY <- paste(blackDrum_mon_avg$MONTH,blackDrum_mon_avg$DAY, blackDrum_mon_avg$YEAR, sep = "-")
+blackDrum_mon_avg$MDY <- as.Date(blackDrum_mon_avg$MDY, format = "%m-%d-%Y")
+
+
+## Southern Flounder calculation ----
+
+SF_mon_avg <- bag.seines %>%
+  group_by(MONTH,YEAR,MAJOR_AREA_CODE) %>%
+  summarize(mean(sf_CPUE))
+
+SF_mon_avg  <- SF_mon_avg %>%
+  rename("CPUE_AvgSF" = "mean(sf_CPUE)")
+
+SF_mon_avg$MAJOR_AREA_CODE <- as.character(SF_mon_avg$MAJOR_AREA_CODE)
+
+#Creating a data column for easier plot interpretation
+SF_mon_avg$DAY <- 1
+SF_mon_avg$MDY <- paste(SF_mon_avg$MONTH,SF_mon_avg$DAY, SF_mon_avg$YEAR, sep = "-")
+SF_mon_avg$MDY <- as.Date(SF_mon_avg$MDY, format = "%m-%d-%Y")
+
+
+
+
+```
+
+
+# Time series analysis plots 
+
+
+
+```{r Red drum time series plots, parsed out by bay , echo=FALSE, fig.cap= "Red Drum montly averaged CPUE over the last ten years parsed out by bay system. Dotted lines signifing two extreme events, Hurricane Harvey and the 2021 Texas Freeze, left to right."}
+
+## red drum plot
+ggplot(data = redDrum_mon_avg %>% filter(YEAR > 2012), mapping = aes(x = MDY, y =  CPUE_AvgRD)) + geom_line(alpha = 0.8, size = 1) +  
+geom_vline(xintercept = as.numeric(as.Date("2017-08-01")), linetype=4, size = 1, color = "#000000") + 
+geom_vline(xintercept = as.numeric(as.Date("2021-02-01")), linetype=4, size=1, color = "#000000") +
+theme_classic() + facet_wrap(~MAJOR_AREA_CODE, scales = "free") +
+   scale_x_date(date_labels = "%Y", date_breaks = "1 year") +
+  labs(
+  title = "Red Drum CPUE Monthly Average Since 2013",
+  x = "Time",
+  y = "CPUE (#/hectare)" 
+) + theme(axis.text.x = element_text(angle=45, hjust=1))
+
+
+```
+
+```{r spotted seatrout time series plots, parsed out by bay , echo=FALSE, fig.cap= "Spotted Seatrout montly averaged CPUE over the last ten years parsed out by bay system. Dotted lines signifing two extreme events, Hurricane Harvey and the 2021 Texas Freeze, left to right."}
+
+#spotted seatrout plot
+ggplot(data = sst_mon_avg %>% filter(YEAR > 2012), mapping = aes(x = MDY, y =  CPUE_AvgSST)) + geom_line(alpha = 0.8, size = 1) + theme_classic() + facet_wrap(~MAJOR_AREA_CODE, scale = "free") +  
+  geom_vline(xintercept = as.numeric(as.Date("2017-08-01")), linetype=4, size = 1, color = "#000000")+
+  geom_vline(xintercept = as.numeric(as.Date("2021-02-01")), linetype=4, size = 1, color = "#000000") +
+  scale_x_date(date_labels = "%Y", date_breaks = "1 year") +
+  labs(
+    title = "Spotted Seatrout CPUE Monthly Average since 2013",
+    x = "Time",
+    y = "CPUE (#/hectare)"
+  )+ theme(axis.text.x = element_text(angle=45, hjust=1)) 
+```
+
+
+```{r black drum time series plots, parsed out by bay , echo=FALSE, fig.cap= "Black Drum montly averaged CPUE over the last ten years parsed out by bay system. Dotted lines signifing two extreme events, Hurricane Harvey and the 2021 Texas Freeze, left to right."}
+## black drum plot
+ggplot(data = blackDrum_mon_avg  %>% filter(YEAR > 2012), mapping = aes(x = MDY, y =  CPUE_AvgBD)) + geom_line(alpha = 0.8, size = 1) + theme_classic() + facet_wrap(~MAJOR_AREA_CODE, scale = "free") +  
+  geom_vline(xintercept = as.numeric(as.Date("2017-08-01")), linetype=4, size = 1, color = "#000000")+
+  geom_vline(xintercept = as.numeric(as.Date("2021-02-01")), linetype=4, size = 1, color = "#000000") +
+  scale_x_date(date_labels = "%Y", date_breaks = "1 year") +
+ labs(
+  title = "Black Drum CPUE Monthly Average since 2013",
+  x = "Time",
+  y = "CPUE (#/hectare)"
+) + theme(axis.text.x = element_text(angle=45, hjust=1))
+
+```
+
+
+```{r Southern Flounder time series plots, parsed out by bay , echo=FALSE, fig.cap= "Southern Flounder montly averaged CPUE over the last ten years parsed out by bay system. Dotted lines signifing two extreme events, Hurricane Harvey and the 2021 Texas Freeze, left to right."}
+## southern flounder plot
+ggplot(data = SF_mon_avg %>% filter(YEAR > 2012), mapping = aes(x = MDY, y =  CPUE_AvgSF)) + geom_line(alpha = 0.8, size = 1) + theme_classic() + facet_wrap(~MAJOR_AREA_CODE, scale = "free") +  
+  geom_vline(xintercept = as.numeric(as.Date("2017-08-01")), linetype=4, size = 1, color = "#000000")+
+  geom_vline(xintercept = as.numeric(as.Date("2021-02-01")), linetype=4, size = 1, color = "#000000") +
+  scale_x_date(date_labels = "%Y", date_breaks = "1 year") +
+  labs(
+  title = "Southern Flounder CPUE Monthly Average since 2013",
+  x = "Time",
+  y = "CPUE (#/hectare)"
+) + theme(axis.text.x = element_text(angle=45, hjust=1))
+
+```
+
+\newpage
+
+# Recruitment Windows
+
+```{r red drum recruitment window, fig.cap= "Red Drum CPUE monthly average raw data points plots over julian day establishing the recruitment window for Red Drum." }
+###Plotting the raw data points starts here####
+#plot
+ggplot(data = bag.seines %>% filter(YEAR > 2012 & YEAR < 2024), mapping = aes(x = as.Date(JULIAN_DATE, origin = as.Date("2021-01-01")), y = rd_CPUE, group=as.factor(YEAR), color = as.factor(YEAR))) + geom_point() + #geom_smooth() +
+  theme_classic() + #facet_wrap(~MAJOR_AREA_CODE) +
+  scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+  labs(
+    title = "Red Drum CPUE Monthly Average Since 2013",
+    x = "Time",
+    y = "CPUE (#/hectare)",
+    color = "Year"
+  )
+
+```
+
+```{r SST recruitment window, fig.cap= "Spotted Seatrout CPUE monthly average raw data points plots over julian day establishing the recruitment window for Spotted Seatrout." }
+
+ggplot(data = bag.seines %>% filter(YEAR > 2012 & YEAR < 2024), mapping = aes(x = as.Date(JULIAN_DATE, origin = as.Date("2021-01-01")), y = (sst_CPUE), group=as.factor(YEAR), color = as.factor(YEAR))) + geom_point() + #geom_smooth() +
+  theme_classic() + #facet_wrap(~MAJOR_AREA_CODE) +
+  scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+  labs(
+    title = "SST CPUE Monthly Average Since 2013",
+    x = "Time",
+    y = "CPUE (#/hectare)",
+     color = "Year"
+  )
+```
+
+
+```{r Black Drum recruitment window, fig.cap= "Black Drum CPUE monthly average raw data points plots over julian day establishing the recruitment window for Black Drum."}
+
+ggplot(data = bag.seines %>% filter(YEAR > 2012 & YEAR < 2024), mapping = aes(x = as.Date(JULIAN_DATE, origin = as.Date("2021-01-01")), y = bd_CPUE, group=as.factor(YEAR), color = as.factor(YEAR))) + geom_point() + #geom_smooth() +
+  theme_classic() + #facet_wrap(~MAJOR_AREA_CODE) +
+  scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+  labs(
+    title = "Black Drum CPUE Monthly Average Since 2013",
+    x = "Time",
+    y = "CPUE (#/hectare)",
+     color = "Year"
+  ) + ylim(0,4000)
+
+
+```
+
+```{r SF recruitment window, fig.cap= "Southern Flounder CPUE monthly average raw data points plots over julian day establishing the recruitment window for Southern Flounder."}
+
+ggplot(data = bag.seines %>% filter(YEAR > 2012 & YEAR < 2024), mapping = aes(x = as.Date(JULIAN_DATE, origin = as.Date("2021-01-01")), y = sf_CPUE, group=as.factor(YEAR), color = as.factor(YEAR))) + geom_point() + #geom_smooth() +
+  theme_classic() + #facet_wrap(~MAJOR_AREA_CODE) +
+  scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+  labs(
+    title = "Southern Flounder CPUE Monthly Average Since 2013",
+    x = "Time",
+    y = "CPUE (#/hectare)",
+     color = "Year"
+  )
+
+
+```
+
+\newpage
+
+
+# Hurricane Harvey Percent Change Tables
+
+```{r Red Drum Hurricane}
+#I had to first subset into the 10 year frame I wanted (no averaging)
+check2 <- bag.seines %>%
+  filter(YEAR > 2006 & YEAR < 2018 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+#Then I had to subset for only the months I wanted for red drum (oct - end of may)
+check3 <- check2 %>% 
+  filter(MONTH < 6 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+check4 <- check2 %>% 
+  filter(MONTH > 9) %>% 
+  group_by(MAJOR_AREA_CODE)
+#pasting them together
+finalcheck <- rbind(check3, check4)
+
+## I realized that the data set has data from an incomplete recruitment window since it starts with 2007 in jan (this recruitment window would have started in oct of the previous year) so I need to make sure it starts in oct of 2007 and ends may of 2016 for the averages
+ 
+finalcheck <- finalcheck %>% 
+  filter(DATE > "2007-09-30") %>% 
+  filter(DATE < "2017-06-01")
+
+
+#ggplot(finalcheck, mapping = aes(x=JULIAN_DATE, y = rd_CPUE)) + geom_point() + theme_classic()
+
+#Final step = Averaging for the baseline
+RE.RD10yr.hurricane <- finalcheck %>% 
+  group_by(MAJOR_AREA_CODE) %>% 
+  summarize(mean(rd_CPUE)) %>% 
+  rename("CPUE" = "mean(rd_CPUE)")
+
+RE.RD10yr.hurricane$SPECIES <- "Red Drum"
+RE.RD10yr.hurricane$AVERAGE <- "10 yrs"
+
+## post storm calculations = 2 post storm recruitment windows
+RE.RD1yr.hurricane <- bag.seines %>%
+  filter(between(DATE, as.Date('2017-10-01'), as.Date('2018-05-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(rd_CPUE)) %>%
+  rename("CPUE" = "mean(rd_CPUE)")
+
+RE.RD1yr.hurricane$SPECIES <- "Red Drum"
+RE.RD1yr.hurricane$AVERAGE <- "1st year"
+
+
+RE.RD2nd.hurricane <- bag.seines %>%
+  filter(between(DATE, as.Date('2018-10-01'), as.Date('2019-05-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(rd_CPUE)) %>%
+  rename("CPUE" = "mean(rd_CPUE)")
+
+RE.RD2nd.hurricane$SPECIES <- "Red Drum"
+RE.RD2nd.hurricane$AVERAGE <- "2nd year"
+
+RE.RDbyyear.Hurr <- rbind(RE.RD10yr.hurricane,RE.RD1yr.hurricane,RE.RD2nd.hurricane)
+
+
+#Plotting
+#ggplot(data = RE.RDbyyear.Hurr , mapping = aes(x = MAJOR_AREA_CODE, y =  CPUE, fill = AVERAGE)) +  geom_bar(stat="identity", color="black", position=position_dodge()) + scale_fill_grey() + theme_classic() + labs(
+  #title = "10 yr avg vs post storm avg for RD across bays using NEW baselines",
+  #x = "Major bays",
+ # y = "Catch per Unit Effort (#/hectare)"
+#) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+## PERCENT CHANGES
+#make it wide:
+RE.RD.Spread.PerChange <- spread(RE.RDbyyear.Hurr, AVERAGE, CPUE)
+
+## Add the column to put in the percent change values
+RE.RD.Spread.PerChange$first_perChange <- NA
+RE.RD.Spread.PerChange$second_perChange <- NA
+
+# for loop calculating per change for the first year
+for (i in 1:nrow(RE.RD.Spread.PerChange)){
+  RE.RD.Spread.PerChange$first_perChange[i] = format(((RE.RD.Spread.PerChange$`1st year`[i] - RE.RD.Spread.PerChange$`10 yrs`[i]) /RE.RD.Spread.PerChange$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+#for loop for calculating per change for the 2nd year to the baseline = 
+for (i in 1:nrow(RE.RD.Spread.PerChange)){
+  RE.RD.Spread.PerChange$second_perChange[i] = format(((RE.RD.Spread.PerChange$`2nd year`[i] - RE.RD.Spread.PerChange$`10 yrs`[i]) /RE.RD.Spread.PerChange$`10 yrs`[i]) * 100 , scientific = F)
+}
+```
+
+
+```{r HH Red Drum Percent Change Table}
+
+#table <- RE.RD.Spread.PerChange
+#table <- table %>%  rename(
+ #"Bays" = "MAJOR_AREA_CODE"
+#)
+
+kable(RE.RD.Spread.PerChange, "latex", booktabs = T, caption = "Red Drum percent changes after Hurricane Harvey") %>% 
+  kable_styling(latex_options = "HOLD_position", full_width = F)
+
+```
+
+```{r Spotted Seatrout Hurricane}
+#I had to first subset into the 10 year frame I wanted (no averaging)
+subset5 <- bag.seines %>%
+  filter(YEAR > 2006 & YEAR < 2017 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+#Then I had to subset for only the months I wanted for spotted seatrout (june - end of december)
+subset6 <- subset5 %>% 
+  filter(MONTH > 5 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+#ggplot(subset6, mapping = aes(x=JULIAN_DATE, y = sst_CPUE)) + geom_point() + theme_classic()
+
+#Final step = Averaging for the baseline
+RE.SST10yr.hurricane <- subset6 %>% 
+  group_by(MAJOR_AREA_CODE) %>% 
+  summarize(mean(sst_CPUE)) %>% 
+  rename("CPUE" = "mean(sst_CPUE)")
+
+RE.SST10yr.hurricane$SPECIES <- "Spotted Seatrout"
+RE.SST10yr.hurricane$AVERAGE <- "10 yrs"
+
+## post storm calculations = 2 post storm recruitment windows
+RE.SST1yr.hurricane <- bag.seines %>%
+  filter(between(DATE, as.Date('2018-06-01'), as.Date('2018-12-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(sst_CPUE)) %>%
+  rename("CPUE" = "mean(sst_CPUE)")
+
+RE.SST1yr.hurricane$SPECIES <- "Spotted Seatrout"
+RE.SST1yr.hurricane$AVERAGE <- "1st year"
+
+
+RE.SST2nd.hurricane <- bag.seines %>%
+  filter(between(DATE, as.Date('2019-06-01'), as.Date('2019-12-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(sst_CPUE)) %>%
+  rename("CPUE" = "mean(sst_CPUE)")
+
+RE.SST2nd.hurricane$SPECIES <- "Spotted Seatrout"
+RE.SST2nd.hurricane$AVERAGE <- "2nd year"
+
+RE.SSTbyyear.Hurr <- rbind(RE.SST10yr.hurricane,RE.SST1yr.hurricane,RE.SST2nd.hurricane)
+
+
+#Plotting
+#ggplot(data = RE.SSTbyyear.Hurr , mapping = aes(x = MAJOR_AREA_CODE, y =  CPUE, fill = AVERAGE)) +  geom_bar(stat="identity", color="black", position=position_dodge()) + scale_fill_grey() + theme_classic() + labs(
+  #title = "10 yr avg vs post storm avg for SST across bays using NEW baselines",
+  #x = "Major bays",
+  #y = "Catch per Unit Effort (#/hectare)"
+#) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+## PERCENT CHANGES
+#make it wide:
+RE.SST.Spread.PerChange <- spread(RE.SSTbyyear.Hurr, AVERAGE, CPUE)
+
+## Add the column to put in the percent change values
+RE.SST.Spread.PerChange$first_perChange <- NA
+RE.SST.Spread.PerChange$second_perChange <- NA
+
+# for loop calculating per change for the first year
+for (i in 1:nrow(RE.SST.Spread.PerChange)){
+  RE.SST.Spread.PerChange$first_perChange[i] = format(((RE.SST.Spread.PerChange$`1st year`[i] - RE.SST.Spread.PerChange$`10 yrs`[i]) /RE.SST.Spread.PerChange$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+#for loop for calculating per change for the 2nd year to the baseline = 
+for (i in 1:nrow(RE.SST.Spread.PerChange)){
+  RE.SST.Spread.PerChange$second_perChange[i] = format(((RE.SST.Spread.PerChange$`2nd year`[i] - RE.SST.Spread.PerChange$`10 yrs`[i]) /RE.SST.Spread.PerChange$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+```
+
+```{r HH and Spotted Seatrout Table}
+
+kable(RE.SST.Spread.PerChange, "latex", booktabs = T, caption = "Spotted Seatrout percent changes after Hurricane Harvey") %>% 
+  kable_styling(latex_options = "HOLD_position", full_width = F)
+
+```
+
+```{r Black Drum and Hurricane}
+## Recruitment window is April to end of oct 
+#I had to first subset into the 10 year frame I wanted (no averaging)
+subset9 <- bag.seines %>%
+  filter(YEAR > 2006 & YEAR < 2017 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+
+#Then I had to subset for only the months I wanted for black drum (April to end of oct)
+subset10 <- subset9 %>% 
+  filter(MONTH > 3 & MONTH < 11 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+#ggplot(subset10, mapping = aes(x=JULIAN_DATE, y = bd_CPUE)) + geom_point() + theme_classic()
+
+#Final step = Averaging for the baseline
+RE.BD10yr.hurricane <- subset10 %>% 
+  group_by(MAJOR_AREA_CODE) %>% 
+  summarize(mean(bd_CPUE)) %>% 
+  rename("CPUE" = "mean(bd_CPUE)")
+
+RE.BD10yr.hurricane$SPECIES <- "Black Drum"
+RE.BD10yr.hurricane$AVERAGE <- "10 yrs"
+
+## post storm calculations = 2 post storm recruitment windows
+RE.BD1yr.hurricane <- bag.seines %>%
+  filter(between(DATE, as.Date('2018-04-01'), as.Date('2018-10-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(bd_CPUE)) %>%
+  rename("CPUE" = "mean(bd_CPUE)")
+
+RE.BD1yr.hurricane$SPECIES <- "Black Drum"
+RE.BD1yr.hurricane$AVERAGE <- "1st year"
+
+
+RE.BD2nd.hurricane <- bag.seines %>%
+  filter(between(DATE, as.Date('2019-04-01'), as.Date('2019-10-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(bd_CPUE)) %>%
+  rename("CPUE" = "mean(bd_CPUE)")
+
+RE.BD2nd.hurricane$SPECIES <- "Black Drum"
+RE.BD2nd.hurricane$AVERAGE <- "2nd year"
+
+RE.BDbyyear.Hurr <- rbind(RE.BD10yr.hurricane,RE.BD1yr.hurricane,RE.BD2nd.hurricane)
+
+
+#Plotting
+#ggplot(data = RE.BDbyyear.Hurr , mapping = aes(x = MAJOR_AREA_CODE, y =  CPUE, fill = AVERAGE)) +  geom_bar(stat="identity", color="black", position=position_dodge()) + scale_fill_grey() + theme_classic() + labs(
+  #title = "10 yr avg vs post storm avg for BD across bays using NEW baselines",
+  #x = "Major bays",
+  #y = "Catch per Unit Effort (#/hectare)"
+#) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+## PERCENT CHANGES
+#make it wide:
+RE.BD.Spread.PerChange <- spread(RE.BDbyyear.Hurr, AVERAGE, CPUE)
+
+## Add the column to put in the percent change values
+RE.BD.Spread.PerChange$first_perChange <- NA
+RE.BD.Spread.PerChange$second_perChange <- NA
+
+# for loop calculating per change for the first year
+for (i in 1:nrow(RE.BD.Spread.PerChange)){
+  RE.BD.Spread.PerChange$first_perChange[i] = format(((RE.BD.Spread.PerChange$`1st year`[i] - RE.BD.Spread.PerChange$`10 yrs`[i]) /RE.BD.Spread.PerChange$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+#for loop for calculating per change for the 2nd year to the baseline = 
+for (i in 1:nrow(RE.BD.Spread.PerChange)){
+  RE.BD.Spread.PerChange$second_perChange[i] = format(((RE.BD.Spread.PerChange$`2nd year`[i] - RE.BD.Spread.PerChange$`10 yrs`[i]) /RE.BD.Spread.PerChange$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+```
+
+```{r HH Black Drum Table}
+kable(RE.BD.Spread.PerChange, "latex", booktabs = T, caption = "Black Drum percent changes after Hurricane Harvey") %>% 
+  kable_styling(latex_options = "HOLD_position", full_width = F)
+
+```
+
+```{r Southern Flounder and Hurricane}
+## Recruitment window is feb to end of july
+
+#I had to first subset into the 10 year frame I wanted (no averaging)
+subset13 <- bag.seines %>%
+  filter(YEAR > 2006 & YEAR < 2017 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+
+#Then I had to subset for only the months I wanted for southern flounder (feb - end of july)
+subset14 <- subset13 %>% 
+  filter(MONTH > 1 & MONTH < 8 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+#ggplot(subset14, mapping = aes(x=JULIAN_DATE, y = sf_CPUE)) + geom_point() + theme_classic()
+
+#Final step = Averaging for the baseline
+RE.SF10yr.hurricane <- subset14 %>% 
+  group_by(MAJOR_AREA_CODE) %>% 
+  summarize(mean(sf_CPUE)) %>% 
+  rename("CPUE" = "mean(sf_CPUE)")
+
+RE.SF10yr.hurricane$SPECIES <- "Southern Flounder"
+RE.SF10yr.hurricane$AVERAGE <- "10 yrs"
+
+## post storm calculations = 2 post storm recruitment windows
+RE.SF1yr.hurricane <- bag.seines %>%
+  filter(between(DATE, as.Date('2018-02-01'), as.Date('2018-07-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(sf_CPUE)) %>%
+  rename("CPUE" = "mean(sf_CPUE)")
+
+RE.SF1yr.hurricane$SPECIES <- "Southern Flounder"
+RE.SF1yr.hurricane$AVERAGE <- "1st year"
+
+
+RE.SF2nd.hurricane <- bag.seines %>%
+  filter(between(DATE, as.Date('2019-02-01'), as.Date('2019-07-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(sf_CPUE)) %>%
+  rename("CPUE" = "mean(sf_CPUE)")
+
+RE.SF2nd.hurricane$SPECIES <- "Southern Flounder"
+RE.SF2nd.hurricane$AVERAGE <- "2nd year"
+
+RE.SFbyyear.Hurr <- rbind(RE.SF10yr.hurricane,RE.SF1yr.hurricane,RE.SF2nd.hurricane)
+
+
+#Plotting
+#ggplot(data = RE.SFbyyear.Hurr , mapping = aes(x = MAJOR_AREA_CODE, y =  CPUE, fill = AVERAGE)) +  geom_bar(stat="identity", color="black", position=position_dodge()) + scale_fill_grey() + theme_classic() + labs(
+ # title = "10 yr avg vs post storm avg for SF across bays using NEW baselines",
+ # x = "Major bays",
+  #y = "Catch per Unit Effort (#/hectare)"
+#) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+## PERCENT CHANGES
+#make it wide:
+RE.SF.Spread.PerChange <- spread(RE.SFbyyear.Hurr, AVERAGE, CPUE)
+
+## Add the column to put in the percent change values
+RE.SF.Spread.PerChange$first_perChange <- NA
+RE.SF.Spread.PerChange$second_perChange <- NA
+
+# for loop calculating per change for the first year
+for (i in 1:nrow(RE.SF.Spread.PerChange)){
+  RE.SF.Spread.PerChange$first_perChange[i] = format(((RE.SF.Spread.PerChange$`1st year`[i] - RE.SF.Spread.PerChange$`10 yrs`[i]) /RE.SF.Spread.PerChange$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+#for loop for calculating per change for the 2nd year to the baseline = 
+for (i in 1:nrow(RE.SF.Spread.PerChange)){
+  RE.SF.Spread.PerChange$second_perChange[i] = format(((RE.SF.Spread.PerChange$`2nd year`[i] - RE.SF.Spread.PerChange$`10 yrs`[i]) /RE.SF.Spread.PerChange$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+```
+
+```{r HH and Southern Flounder Table, }
+kable(RE.SF.Spread.PerChange, "latex", booktabs = T, caption = "Southern Flounder percent changes after Hurricane Harvey") %>% 
+  kable_styling(latex_options = "HOLD_position", full_width = F)
+```
+
+\newpage
+
+# Texas 2021 Freeze Percent Change Tables 
+```{r Red Drum Feeze}
+
+#I had to first subset into the 10 year frame I wanted (no averaging)
+subset2 <- bag.seines %>%
+  filter(YEAR > 2008 & YEAR < 2020 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+#summarize(mean(rd_CPUE)) %>%
+#rename("CPUE" = "mean(rd_CPUE)")
+
+#Then I had to subset for only the months I wanted for red drum (oct - end of may)
+subset3 <- subset2 %>% 
+  filter(MONTH < 6 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+subset4 <- subset2 %>% 
+  filter(MONTH > 9) %>% 
+  group_by(MAJOR_AREA_CODE)
+#pasting them together
+finalsubset <- rbind(subset3, subset4)
+
+## I realized that the data set has data from an incomplete recruitment window since it starts with 2009 in jan (this recruitment window would have started in oct of the previous year) so I need to make sure it starts in oct of 2009 and ends may of 2019 for the averages
+
+finalsubset <- finalsubset %>% 
+  filter(DATE > "2009-09-30") %>% 
+  filter(DATE < "2019-06-01")
+
+
+#ggplot(finalsubset, mapping = aes(x=JULIAN_DATE, y = rd_CPUE)) + geom_point() + theme_classic()
+
+#Final step = Averaging for the baseline
+RE.RD10yr.freeze <- finalsubset %>% 
+  group_by(MAJOR_AREA_CODE) %>% 
+  summarize(mean(rd_CPUE)) %>% 
+  rename("CPUE" = "mean(rd_CPUE)")
+
+RE.RD10yr.freeze$SPECIES <- "Red Drum"
+RE.RD10yr.freeze$AVERAGE <- "10 yrs"
+
+## post storm calculations = 2 post storm recruitment windows
+RE.RD1yr.freeze <- bag.seines %>%
+  filter(between(DATE, as.Date('2021-10-01'), as.Date('2022-05-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(rd_CPUE)) %>%
+  rename("CPUE" = "mean(rd_CPUE)")
+
+RE.RD1yr.freeze$SPECIES <- "Red Drum"
+RE.RD1yr.freeze$AVERAGE <- "1st year"
+
+
+RE.RD2nd.freeze<- bag.seines %>%
+  filter(between(DATE, as.Date('2022-10-01'), as.Date('2023-05-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(rd_CPUE)) %>%
+  rename("CPUE" = "mean(rd_CPUE)")
+
+RE.RD2nd.freeze$SPECIES <- "Red Drum"
+RE.RD2nd.freeze$AVERAGE <- "2nd year"
+
+RE.RDbyyear.Freeze <- rbind(RE.RD10yr.freeze,RE.RD1yr.freeze,RE.RD2nd.freeze)
+
+
+#Plotting
+#ggplot(data = RE.RDbyyear.Freeze , mapping = aes(x = MAJOR_AREA_CODE, y =  CPUE, fill = AVERAGE)) +  geom_bar(stat="identity", color="black", position=position_dodge()) + scale_fill_grey() + theme_classic() + labs(
+  #title = "10 yr avg vs post freeze avg for RD across bays using NEW baselines",
+ # x = "Major bays",
+ # y = "Catch per Unit Effort (#/hectare)"
+#) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+## PERCENT CHANGES
+#make it wide:
+RE.RD.freeze.PerChange <- spread(RE.RDbyyear.Freeze, AVERAGE, CPUE)
+
+## Add the column to put in the percent change values
+RE.RD.freeze.PerChange$first_perChange <- NA
+RE.RD.freeze.PerChange$second_perChange <- NA
+
+# for loop calculating per change for the first year
+for (i in 1:nrow(RE.RD.freeze.PerChange)){
+  RE.RD.freeze.PerChange$first_perChange[i] = format(((RE.RD.freeze.PerChange$`1st year`[i] - RE.RD.freeze.PerChange$`10 yrs`[i]) /RE.RD.freeze.PerChange$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+#for loop for calculating per change for the 2nd year to the baseline = 
+for (i in 1:nrow(RE.RD.freeze.PerChange)){
+  RE.RD.freeze.PerChange$second_perChange[i] = format(((RE.RD.freeze.PerChange$`2nd year`[i] - RE.RD.freeze.PerChange$`10 yrs`[i]) /RE.RD.freeze.PerChange$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+
+```
+
+```{r Freeze Red Drum Table}
+
+kable(RE.RD.freeze.PerChange, "latex", booktabs = T, caption = "Red Drum percent changes after freeze event") %>% 
+  kable_styling(latex_options = "HOLD_position", full_width = F)
+
+```
+
+```{r Spotted Seatrout and Texas Freeze}
+
+# Spotted seatrout freeze baseline
+#I had to first subset into the 10 year frame I wanted (no averaging)
+subset7 <- bag.seines %>%
+  filter(YEAR > 2009 & YEAR < 2020 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+#summarize(mean(rd_CPUE)) %>%
+#rename("CPUE" = "mean(rd_CPUE)")
+
+#Then I had to subset for only the months I wanted for spotted seatrout (june - end of dec)
+subset8 <- subset7 %>% 
+  filter(MONTH > 5 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+#ggplot(subset8, mapping = aes(x=JULIAN_DATE, y = sst_CPUE)) + geom_point() + theme_classic()
+
+#Final step = Averaging for the baseline
+RE.SST10yr.freeze <- subset8 %>% 
+  group_by(MAJOR_AREA_CODE) %>% 
+  summarize(mean(sst_CPUE)) %>% 
+  rename("CPUE" = "mean(sst_CPUE)")
+
+RE.SST10yr.freeze$SPECIES <- "Spotted Seatrout"
+RE.SST10yr.freeze$AVERAGE <- "10 yrs"
+
+## post storm calculations = 2 post storm recruitment windows
+RE.SST1yr.freeze <- bag.seines %>%
+  filter(between(DATE, as.Date('2021-06-01'), as.Date('2021-12-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(sst_CPUE)) %>%
+  rename("CPUE" = "mean(sst_CPUE)")
+
+RE.SST1yr.freeze$SPECIES <- "Spotted Seatrout"
+RE.SST1yr.freeze$AVERAGE <- "1st year"
+
+
+RE.SST2nd.freeze <- bag.seines %>%
+  filter(between(DATE, as.Date('2022-06-01'), as.Date('2022-12-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(sst_CPUE)) %>%
+  rename("CPUE" = "mean(sst_CPUE)")
+
+RE.SST2nd.freeze$SPECIES <- "Spotted Seatrout"
+RE.SST2nd.freeze$AVERAGE <- "2nd year"
+
+RE.SSTbyyear.Freeze <- rbind(RE.SST10yr.freeze,RE.SST1yr.freeze,RE.SST2nd.freeze)
+
+
+#Plotting
+#ggplot(data = RE.SSTbyyear.Freeze , mapping = aes(x = MAJOR_AREA_CODE, y =  CPUE, fill = AVERAGE)) +  geom_bar(stat="identity", color="black", position=position_dodge()) + scale_fill_grey() + theme_classic() + labs(
+ # title = "10 yr avg vs post storm avg for SST across bays using NEW baselines",
+  #x = "Major bays",
+  #y = "Catch per Unit Effort (#/hectare)"
+#) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+## PERCENT CHANGES
+#make it wide:
+RE.SST.PerChange.freeze <- spread(RE.SSTbyyear.Freeze, AVERAGE, CPUE)
+
+## Add the column to put in the percent change values
+RE.SST.PerChange.freeze$first_perChange <- NA
+RE.SST.PerChange.freeze$second_perChange <- NA
+
+# for loop calculating per change for the first year
+for (i in 1:nrow(RE.SST.PerChange.freeze)){
+  RE.SST.PerChange.freeze$first_perChange[i] = format(((RE.SST.PerChange.freeze$`1st year`[i] - RE.SST.PerChange.freeze$`10 yrs`[i]) /RE.SST.PerChange.freeze$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+#for loop for calculating per change for the 2nd year to the baseline = 
+for (i in 1:nrow(RE.SST.PerChange.freeze)){
+  RE.SST.PerChange.freeze$second_perChange[i] = format(((RE.SST.PerChange.freeze$`2nd year`[i] - RE.SST.PerChange.freeze$`10 yrs`[i]) /RE.SST.PerChange.freeze$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+```
+
+```{r Freeze and Spotted Seatrout Table}
+kable(RE.SST.PerChange.freeze, "latex", booktabs = T, caption = "Spotted Seatrout percent changes after freeze event") %>% 
+  kable_styling(latex_options = "HOLD_position", full_width = F)
+
+```
+
+```{r Black Drum and Texas Freeze}
+
+# black drum freeze baseline
+#I had to first subset into the 10 year frame I wanted (no averaging)
+subset11 <- bag.seines %>%
+  filter(YEAR > 2009 & YEAR < 2020 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+#Then I had to subset for only the months I wanted for black drum (April - end of oct)
+subset12 <- subset11 %>% 
+  filter(MONTH > 3 & MONTH < 11 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+#ggplot(subset12, mapping = aes(x=JULIAN_DATE, y = bd_CPUE)) + geom_point() + theme_classic()
+
+#Final step = Averaging for the baseline
+RE.BD10yr.freeze <- subset12 %>% 
+  group_by(MAJOR_AREA_CODE) %>% 
+  summarize(mean(bd_CPUE)) %>% 
+  rename("CPUE" = "mean(bd_CPUE)")
+
+RE.BD10yr.freeze$SPECIES <- "Black Drum"
+RE.BD10yr.freeze$AVERAGE <- "10 yrs"
+
+## post storm calculations = 2 post storm recruitment windows
+RE.BD1yr.freeze <- bag.seines %>%
+  filter(between(DATE, as.Date('2021-04-01'), as.Date('2021-10-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(bd_CPUE)) %>%
+  rename("CPUE" = "mean(bd_CPUE)")
+
+RE.BD1yr.freeze$SPECIES <- "Black Drum"
+RE.BD1yr.freeze$AVERAGE <- "1st year"
+
+
+RE.BD2nd.freeze <- bag.seines %>%
+  filter(between(DATE, as.Date('2022-04-01'), as.Date('2022-10-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(bd_CPUE)) %>%
+  rename("CPUE" = "mean(bd_CPUE)")
+
+RE.BD2nd.freeze$SPECIES <- "Black Drum"
+RE.BD2nd.freeze$AVERAGE <- "2nd year"
+
+RE.BDbyyear.Freeze <- rbind(RE.BD10yr.freeze,RE.BD1yr.freeze,RE.BD2nd.freeze)
+
+
+#Plotting
+#ggplot(data = RE.BDbyyear.Freeze , mapping = aes(x = MAJOR_AREA_CODE, y =  CPUE, fill = AVERAGE)) +  geom_bar(stat="identity", color="black", position=position_dodge()) + scale_fill_grey() + theme_classic() + labs(
+ # title = "10 yr avg vs post storm avg for BD across bays using NEW baselines",
+  #x = "Major bays",
+  #y = "Catch per Unit Effort (#/hectare)"
+#) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+## PERCENT CHANGES
+#make it wide:
+RE.BD.PerChange.freeze <- spread(RE.BDbyyear.Freeze, AVERAGE, CPUE)
+
+## Add the column to put in the percent change values
+RE.BD.PerChange.freeze$first_perChange <- NA
+RE.BD.PerChange.freeze$second_perChange <- NA
+
+# for loop calculating per change for the first year
+for (i in 1:nrow(RE.BD.PerChange.freeze)){
+  RE.BD.PerChange.freeze$first_perChange[i] = format(((RE.BD.PerChange.freeze$`1st year`[i] - RE.BD.PerChange.freeze$`10 yrs`[i]) /RE.BD.PerChange.freeze$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+#for loop for calculating per change for the 2nd year to the baseline = 
+for (i in 1:nrow(RE.BD.PerChange.freeze)){
+  RE.BD.PerChange.freeze$second_perChange[i] = format(((RE.BD.PerChange.freeze$`2nd year`[i] - RE.BD.PerChange.freeze$`10 yrs`[i]) /RE.BD.PerChange.freeze$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+
+
+```
+
+```{r Freeze and Black Drum Table}
+
+kable(RE.BD.PerChange.freeze, "latex", booktabs = T, caption = "Black Drum percent changes after freeze event") %>% 
+  kable_styling(latex_options = "HOLD_position", full_width = F)
+
+```
+
+```{r Southern Flounder and Texas Freeze}
+
+# southern flounder freeze baseline
+#I had to first subset into the 10 year frame I wanted (no averaging)
+subset15 <- bag.seines %>%
+  filter(YEAR > 2009 & YEAR < 2020 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+#Then I had to subset for only the months I wanted for southern flounder feb -end of july
+subset16 <- subset15 %>% 
+  filter(MONTH > 1 & MONTH < 8 ) %>% 
+  group_by(MAJOR_AREA_CODE)
+
+#ggplot(subset16, mapping = aes(x=JULIAN_DATE, y = sf_CPUE)) + geom_point() + theme_classic()
+
+#Final step = Averaging for the baseline
+RE.SF10yr.freeze <- subset16 %>% 
+  group_by(MAJOR_AREA_CODE) %>% 
+  summarize(mean(sf_CPUE)) %>% 
+  rename("CPUE" = "mean(sf_CPUE)")
+
+RE.SF10yr.freeze$SPECIES <- "Southern Flounder"
+RE.SF10yr.freeze$AVERAGE <- "10 yrs"
+
+## post storm calculations = 2 post storm recruitment windows
+RE.SF1yr.freeze <- bag.seines %>%
+  filter(between(DATE, as.Date('2021-02-22'), as.Date('2021-07-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(sf_CPUE)) %>%
+  rename("CPUE" = "mean(sf_CPUE)")
+
+RE.SF1yr.freeze$SPECIES <- "Southern Flounder"
+RE.SF1yr.freeze$AVERAGE <- "1st year"
+
+
+RE.SF2nd.freeze <- bag.seines %>%
+  filter(between(DATE, as.Date('2022-02-22'), as.Date('2022-07-31'))) %>% 
+  group_by(MAJOR_AREA_CODE) %>%
+  summarize(mean(sf_CPUE)) %>%
+  rename("CPUE" = "mean(sf_CPUE)")
+
+RE.SF2nd.freeze$SPECIES <- "Southern Flounder"
+RE.SF2nd.freeze$AVERAGE <- "2nd year"
+
+RE.SFbyyear.Freeze <- rbind(RE.SF10yr.freeze,RE.SF1yr.freeze,RE.SF2nd.freeze)
+
+
+#Plotting
+#ggplot(data = RE.SFbyyear.Freeze , mapping = aes(x = MAJOR_AREA_CODE, y =  CPUE, fill = AVERAGE)) +  geom_bar(stat="identity", color="black", position=position_dodge()) + scale_fill_grey() + theme_classic() + labs(
+ # title = "10 yr avg vs post storm avg for SF across bays using NEW baselines",
+  #x = "Major bays",
+  #y = "Catch per Unit Effort (#/hectare)"
+#) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+## PERCENT CHANGES
+#make it wide:
+RE.SF.PerChange.freeze <- spread(RE.SFbyyear.Freeze, AVERAGE, CPUE)
+
+## Add the column to put in the percent change values
+RE.SF.PerChange.freeze$first_perChange <- NA
+RE.SF.PerChange.freeze$second_perChange <- NA
+
+# for loop calculating per change for the first year
+for (i in 1:nrow(RE.SF.PerChange.freeze)){
+  RE.SF.PerChange.freeze$first_perChange[i] = format(((RE.SF.PerChange.freeze$`1st year`[i] - RE.SF.PerChange.freeze$`10 yrs`[i]) /RE.SF.PerChange.freeze$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+#for loop for calculating per change for the 2nd year to the baseline = 
+for (i in 1:nrow(RE.SF.PerChange.freeze)){
+  RE.SF.PerChange.freeze$second_perChange[i] = format(((RE.SF.PerChange.freeze$`2nd year`[i] - RE.SF.PerChange.freeze$`10 yrs`[i]) /RE.SF.PerChange.freeze$`10 yrs`[i]) * 100 , scientific = F)
+}
+
+
+```
+
+```{r Freeze and Southern Flounder Tabl}
+kable(RE.SF.PerChange.freeze, "latex", booktabs = T, caption = "Southern Flounder percent changes after freeze event") %>% 
+  kable_styling(latex_options = "HOLD_position", full_width = F)
+
+```
+
+\newpage
+# Models 
+In the order of
+
+- Hurricane and first year percent change
+- Hurricane and second year percent change
+- Freeze and first year percent change
+- Freeze and second year percent change 
+
+```{r Hurricane percent change models set up}
+
+###### Building the data frame:
+## Call in enviornmental data
+enviro_data <- read.csv("~/texas_extreme_events/BayChar.csv")
+
+
+coast_salinity <- bag.seines %>%
+  filter(YEAR > 2013 & YEAR < 2024) %>% 
+  group_by(MAJOR_AREA_CODE) %>% 
+  summarise_at(.var = c("START_SALINITY_NUM"), .funs =   mean)
+
+#merge data
+bay_char <- merge(enviro_data,coast_salinity)
+
+#re-level:
+bay_char$MAJOR_AREA_CODE <- factor(bay_char$MAJOR_AREA_CODE , levels = c("SabineLake", "GalvestonBay", "MatagordaBay", "SanAntonioBay", "AransasBay", "CorpusChristiBay", "UpperLagunaMadre", "LowerLagunaMadre"))
+
+#building data frame
+seatrout_test <- merge(RE.SST.Spread.PerChange, bay_char)
+red_test <- merge(RE.RD.Spread.PerChange, bay_char)
+bd_test <- merge(RE.BD.Spread.PerChange, bay_char)
+sf_test <- merge(RE.SF.Spread.PerChange, bay_char)
+combined <- rbind(seatrout_test,red_test, bd_test, sf_test)
+
+##Re-name column names and adjust columns 
+combined <- combined %>% 
+  rename(
+    Mean_Depth = Mean_Depth..m.,
+    Max_DepthDredged = Max_Depth_Dredged..m.,
+    SurfaceArea = Surface_Area..ha.,
+    Volume = Volumn..km3.
+  )
+
+
+#numeric:
+combined$SurfaceArea <- as.numeric(combined$SurfaceArea)
+combined$first_perChange <- as.numeric(combined$first_perChange)
+combined$second_perChange <- as.numeric(combined$second_perChange)
+
+```
+
+```{r freeze dataframe set up}
+
+#building data frame
+seatrout_bayfreeze <- merge(RE.SST.PerChange.freeze, bay_char)
+red_bayfreeze <- merge(RE.RD.freeze.PerChange, bay_char)
+bd_bayfreeze <- merge(RE.BD.PerChange.freeze, bay_char)
+sf_bayfreeze <- merge(RE.SF.PerChange.freeze, bay_char)
+freeze_combined <- rbind(seatrout_bayfreeze,red_bayfreeze, bd_bayfreeze, sf_bayfreeze)
+
+#re-level:
+freeze_combined$MAJOR_AREA_CODE <- factor(bay_char$MAJOR_AREA_CODE , levels = c("SabineLake", "GalvestonBay", "MatagordaBay", "SanAntonioBay", "AransasBay", "CorpusChristiBay", "UpperLagunaMadre", "LowerLagunaMadre"))
+
+
+##Re-name column names
+freeze_combined <- freeze_combined %>% 
+  rename(
+    Mean_Depth = Mean_Depth..m.,
+    Max_DepthDredged = Max_Depth_Dredged..m.,
+    SurfaceArea = Surface_Area..ha.,
+    Volume = Volumn..km3.
+  )
+
+#numeric:
+freeze_combined$SurfaceArea <- as.numeric(freeze_combined$SurfaceArea)
+freeze_combined$first_perChange <- as.numeric(freeze_combined$first_perChange)
+freeze_combined$second_perChange <- as.numeric(freeze_combined$second_perChange)
+
+
+```
+
+
+## Collinerarity, linear relationships among the x-variables themselves, running a pair plot
+
+```{r collinerarity, fig.cap= "Correlation between the x-varaibles to observe any signicant linear relationships before building the model"}
+
+library(GGally)
+
+z <- cbind(combined$Mean_Depth, combined$Max_DepthDredged, combined$SurfaceArea, combined$Volume,combined$START_SALINITY_NUM)
+
+colnames(z) <- c("Mean_Depth", "Max_DepthDredged", "SurfaceArea", "Volume", "START_SALINITY_NUM" )
+
+z <- as.data.frame(z)
+ggpairs(z)
+
+```
+
+
+## Model Selection 
+
+Surface area and mean depth were removed as explanatory variables given the results from the correlation matrix. Max depth dredged was chosen based off the literature (Stevens et al 2016) to test the hypothesis of deeper water as a refuge explaining the variation in percent change. A global model was created for all four models, (First and second percent change during Hurricane Harvey and first and second percent change during the freeze event). From these global models, we ran combinations of the explanatory variables to determined the best fitting model. 
+
+### Units of variables: 
+
+- Maximum depth is in meters
+- Volume is in cubic kilometers
+- Salinity is in parts per thousand 
+
+## Global model 1
+
+```{r globel model 1, include = FALSE}
+
+global.model1 <- glm(first_perChange~ #percent change first year post storm
+                       Max_DepthDredged + #max depth in each bay
+                       Volume+ #volume of each bay
+                       START_SALINITY_NUM, #average salinity over 2013-2023 to represent a salinity gradient across the bays
+                     data = combined) #data frame
+
+#using the glmult function 
+library("glmulti")
+percent.model1 <- glmulti(global.model1,
+                          level = 1,
+                          crit = "aicc")
+
+summary(percent.model1)
+
+## this had the best model as first_perChange ~ 1 
+
+#all models listed with AIC
+weightable(percent.model1)
+
+```
+
+
+```{r mod 1 AIC}
+#all models listed with AIC
+weightable(percent.model1)
+
+```
+
+
+\newpage
+
+## Global model 2
+
+```{r global model 2, include=FALSE}
+global.model2 <- glm(second_perChange~ #percent change first year post storm
+                       Max_DepthDredged + #max depth in each bay
+                       Volume + #volumn of each bay
+                       START_SALINITY_NUM, #average salinity over 2013-2023 to represent a salinity gradient across the bays
+                     data = combined) #data frame
+
+#using the glmult function 
+library("glmulti")
+percent.model2 <- glmulti(global.model2,
+                          level = 1,
+                          crit = "aicc")
+
+summary(percent.model2)
+
+## best model was second_perChange ~ 1 + mean_depth + max_depthdredged + surface area + volumn + START_SALINITY_NUM
+
+
+
+```
+
+```{r mod 2 AIC}
+#other models
+weightable(percent.model2)
+
+```
+
+
+## Global model 3
+
+```{r global model 3, include = FALSE}
+#First percent change:
+global.model3 <- glm(first_perChange~ #percent change first year post storm
+                       Max_DepthDredged + #max depth in each bay
+                       Volume + #volumn of each bay
+                       START_SALINITY_NUM, #average salinity over 2013-2023 to represent a salinity gradient across the bays
+                     data = freeze_combined) #data frame
+
+#using the glmult function 
+library("glmulti")
+percent.model3 <- glmulti(global.model3,
+                          level = 1,
+                          crit = "aicc")
+
+summary(percent.model3)
+
+## this had the best model as first_perChange ~ 1  
+
+#Other models
+weightable(percent.model3)
+
+```
+
+```{r mod 3 AIC}
+#all models listed with AIC
+weightable(percent.model3)
+
+```
+
+
+
+## Global model 4
+
+```{r global model 4, include = FALSE}
+
+####Second 
+global.model4 <- glm(second_perChange~ #percent change first year post storm
+                       Max_DepthDredged + #max depth in each bay
+                       Volume + #volumn of each bay
+                       START_SALINITY_NUM, #average salinity over 2013-2023 to represent a salinity gradient across the bays
+                     data = freeze_combined) #data frame
+
+#using the glmult function 
+library("glmulti")
+percent.model4 <- glmulti(global.model4,
+                          level = 1,
+                          crit = "aicc")
+
+summary(percent.model4)
+
+## best model was second_perChange ~ 1 + Max_depthdredged
+
+#other models
+weightable(percent.model4)
+
+```
+
+```{r mod 4 AIC}
+
+weightable(percent.model4)
+```
+
+\newpage
+
+All models performed similarly within 2 AIC points and gave the best fitting model with only the intercept. Because they all performed similarly, analysis continued with the global model equation (first_perChange ~ Max_DepthDredged + Volume + START_SALINITY_NUM and second_perChange ~ Max_DepthDredged + Volume + START_SALINITY_NUM for both Hurricane Harvey and Texas Freeze). 
+
+
+
+\newpage
+
+## Hurricane Harvey and first year percent change plotted against each explanatory variable 
+
+### Units of variables: 
+
+- Maximum depth is in meters
+- Volume is in cubic kilometers
+- Salinity is in parts per thousand 
+
+```{r first year HH and average depth, fig.cap= "First year percent change during Hurricane Harvey correlated with max depth of bays"}
+
+
+ggplot(data = combined, aes( x = Max_DepthDredged, y = first_perChange)) + geom_point() + geom_smooth(method = 'glm') + theme_classic() + 
+  labs(
+    x = "Maximum Depth Dredged (m)",
+    y = "% Change" 
+  )
+
+
+```
+
+```{r first year HH and avg salinity, fig.cap= "First year percent change during Hurricane Harvey correlated with average salinity"}
+
+
+ggplot(data = combined, aes( x = START_SALINITY_NUM, y = first_perChange)) + geom_point() + geom_smooth(method = 'glm') + theme_classic() + 
+  labs(
+    x = "Salinity (ppt)",
+    y = "% Change" 
+  )
+
+```
+
+```{r first year HH and avg temp, fig.cap= "First year percent change during Hurricane Harvey correlated with volume of the bays"}
+
+ggplot(data = combined, aes( x = Volume, y = first_perChange)) + geom_point() + geom_smooth(method = 'glm') + theme_classic() + 
+  labs(
+    x = "Volume (cubic kilometer)",
+    y = "% Change" 
+  )
+```
+
+```{r mod 1 residuals, fig.cap="Residual vs fitted for first year percent change during hurricane harvey model"}
+
+plot(global.model1, which = 1)
+
+```
+
+
+```{r mod 1 QQ plot, fig.cap= "Normal Q-Q plot for first year percent change during hurricane harvey model"}
+plot(global.model1, which = 2)
+
+```
+
+
+\newpage
+
+## Hurricane Harvey and first year percent change generalized linear regression with a Gaussian error distribution
+
+Model equation: first_perChange ~ Max_DepthDredged + volume + START_SALINITY_NUM
+
+```{r summary output mod1 HH and first year}
+
+
+#mod1 <- glm(formula = first_perChange ~ Max_DepthDredged + volume + START_SALINITY_NUM, data = combined)
+
+summ(global.model1)
+
+```
+
+\newpage
+
+
+
+## Hurricane Harvey and second year percent change
+
+
+
+```{r second year HH average depth, fig.cap= "Second year percent change during Hurricane Harvey correlated with max depth of bay"}
+
+ggplot(data = combined, aes( x = Max_DepthDredged, y = second_perChange)) + geom_point() + geom_smooth(method = 'glm') + theme_classic() + 
+  labs(
+    x = "Maximum Depth Dredged (m)",
+    y = "% Change" 
+  )
+
+```
+
+
+```{r second year HH average salinity, fig.cap="Second year percent change during Hurricane Harvey correlated with average salinity"  }
+ggplot(data = combined, aes( x = START_SALINITY_NUM, y = second_perChange)) + geom_point() + geom_smooth(method = 'glm') + theme_classic() + 
+  labs(
+    x = "Salinity (ppt)",
+    y = "% Change" 
+  )
+
+
+```
+
+```{r second year HH average temp, fig.cap="Second year percent change during Hurricane Harvey correlated with volume"}
+
+ggplot(data = combined, aes( x = Volume, y = second_perChange)) + geom_point() + geom_smooth(method = 'glm') + theme_classic() + 
+  labs(
+    x = "Volume (cubic kilometer)",
+    y = "% Change" 
+  )
+```
+
+```{r mod 2 residuals, fig.cap="Residual vs fitted for second year percent change during hurricane harvey model"}
+
+plot(global.model2, which = 1)
+
+```
+
+
+```{r mod 2 QQ plot, fig.cap= "Normal Q-Q plot for second year percent change during hurricane harvey model"}
+plot(global.model2, which = 2)
+
+```
+
+
+\newpage
+
+
+## Hurricane Harvey and second year percent change generalized linear regression with a Gaussian error distribution
+
+Model equation: second_perChange ~ Max_DepthDredged + volume + START_SALINITY_NUM
+
+```{r summary output mod 2 HH and second year}
+
+# glm for second year Hurricane
+
+#mod2 <- glm(formula = second_perChange ~ Avg_Depth_m + START_TEMPERATURE_NUM + START_SALINITY_NUM, data = combined)
+
+summ(global.model2)
+
+
+```
+
+\newpage
+
+
+## Freeze and first year percent change
+
+```{r first year freeze average depth, fig.cap="First year percent change during Texas freeze correlated with max depth"}
+ggplot(data = freeze_combined, aes( x = Max_DepthDredged, y = first_perChange)) + geom_point() + geom_smooth(method = 'glm') + theme_classic() + 
+  labs(
+    x = "Maximum Depth Dredged (m)",
+    y = "% Change" 
+  )
+```
+
+```{r first year freeze average salinity, fig.cap="First year percent change during Texas freeze correlated with average salinity"}
+
+ggplot(data = freeze_combined, aes( x = START_SALINITY_NUM, y = first_perChange)) + geom_point() + geom_smooth(method = 'glm') + theme_classic() + 
+  labs(
+    x = "Salinity (ppt)",
+    y = "% Change" 
+  )
+
+```
+
+```{r first year freeze average temp, fig.cap="First year percent change during Texas freeze correlated with volume"}
+ggplot(data = freeze_combined, aes( x = Volume, y = first_perChange)) + geom_point() + geom_smooth(method = 'glm') + theme_classic() + 
+  labs(
+    x = "Volume (cubic kilometer)",
+    y = "% Change" 
+  )
+
+```
+
+
+```{r mod 3 residuals, fig.cap="Residual vs fitted for first year percent change during Texas freeze model"}
+
+plot(global.model3, which = 1)
+
+```
+
+
+```{r mod 3 QQ plot, fig.cap= "Normal Q-Q plot for first year percent change during Texas freeze model"}
+plot(global.model3, which = 2)
+
+```
+
+\newpage
+
+## Freeze event and first year percent change generalized linear regression with a Gaussian error distribution
+
+Model equation: first_perChange ~ Max_DepthDredged + volume + START_SALINITY_NUM
+
+```{r summary output mod 3 first year and freeze }
+#glm for first year freeze
+#mod3 <- glm(formula = first_perChange ~ Avg_Depth_m + START_TEMPERATURE_NUM + START_SALINITY_NUM, data = freeze_combined)
+
+summ(global.model3)
+```
+
+\newpage
+
+## Freeze and second year percent change
+
+```{r second year freeze and avg depth, fig.cap= "Second year percent change during Texas freeze correlated with max depth"}
+ggplot(data = freeze_combined, aes( x = Max_DepthDredged, y = second_perChange)) + geom_point() + geom_smooth(method = 'glm') + theme_classic() + 
+  labs(
+    x = "Maximum Depth Dredged (m)",
+    y = "% Change" 
+  )
+
+```
+
+```{r second year freeze and avg salinity, fig.cap="Second year percent change during Texas freeze correlated with average salinity"}
+ggplot(data = freeze_combined, aes( x = START_SALINITY_NUM, y = second_perChange)) + geom_point() + geom_smooth(method = 'glm') + theme_classic() + 
+  labs(
+    x = "Salinity (ppt)",
+    y = "% Change" 
+  )
+```
+
+```{r second year freeze and avg temp, fig.cap="Second year percent change during Texas freeze correlated with volume "}
+ggplot(data = freeze_combined, aes( x = Volume, y = second_perChange)) + geom_point() + geom_smooth(method = 'glm') + theme_classic() + 
+  labs(
+    x = "Volume (cubic kilometer)",
+    y = "% Change" 
+  )
+```
+
+
+
+```{r mod 4 residuals, fig.cap="Residual vs fitted for second year percent change during Texas freeze model"}
+
+plot(global.model4, which = 1)
+
+```
+
+
+```{r mod 4 QQ plot, fig.cap= "Normal Q-Q plot for second year percent change during Texas freeze model"}
+plot(global.model4, which = 2)
+
+```
+
+\newpage
+
+## Freeze event and second year percent change generalized linear regression with a Gaussian error distribution
+
+Model equation: Second_perChange ~ Max_DepthDredged + volume + START_SALINITY_NUM
+
+```{r summary output of mod 4 freeze and second year}
+
+# glm for second year freeze
+
+#mod4 <- glm(formula = second_perChange ~ Avg_Depth_m + START_TEMPERATURE_NUM + START_SALINITY_NUM, data = freeze_combined)
+
+summ(global.model4)
+
+
+
+```
+
